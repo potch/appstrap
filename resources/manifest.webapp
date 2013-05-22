@@ -1,0 +1,10 @@
+{
+    "name": "{{ name }}",
+    "description": "{{ description }}",
+    "developer": {
+        "name": "{{ devName }}",
+        "url": "{{ devURL }}"
+    },
+    "launch_path": "/index.html",
+    "default_locale": "en"
+}

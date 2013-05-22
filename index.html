@@ -1,0 +1,136 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1, maximum-scale=1">
+    <title>Start a new empty app</title>
+    <style>
+      * {
+        -moz-box-sizing: border-box;
+      }
+      body {
+        text-align: center;
+        font-family: sans-serif;
+      }
+      input, label, button {
+        display: block;
+        margin: 20px auto;
+        font-size: 20px;
+      }
+      input {
+        text-align: left;
+        border-radius: 10px;
+        padding: 8px 16px;
+        border: 0;
+        box-shadow: 0 2px 2px rgba(0,0,0,.5) inset,
+                    0 -2px 2px rgba(0,0,0,.1) inset;
+      }
+      input:focus {
+        box-shadow: 0 0 5px rgba(0,120,255,.5),
+                    0 2px 2px rgba(0,0,0,.5) inset,
+                    0 -2px 2px rgba(0,0,0,.1) inset;
+
+      }
+      input, button {
+        width: 300px;
+        height: 40px;
+      }
+      button {
+        border-radius: 20px;
+        border: 0;
+        background-color: #ccc;
+        box-shadow: 0 -5px 10px rgba(0,0,0,.5) inset,
+                    0 5px 10px rgba(255,255,255,.5) inset;
+        cursor: pointer;
+        padding-bottom: 4px;
+      }
+      button:active {
+        padding: inherit;
+        padding-top: 0px;
+        box-shadow: 0 5px 10px rgba(0,0,0,.5) inset,
+                    0 -5px 10px rgba(255,255,255,.5) inset;
+      }
+      button:focus {
+        box-shadow: 0 0 5px rgba(0,120,255,.5),
+                    0 -5px 10px rgba(0,0,0,.5) inset,
+                    0 5px 10px rgba(255,255,255,.5) inset;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Start a new empty app</h1>
+    <form>
+      <label for="name">Name</label>
+      <input id="name">
+      <label for="desc">Description</label>
+      <input id="desc">
+      <label for="devname">Developer Name</label>
+      <input id="devname">
+      <label for="devurl">Developer URL</label>
+      <input id="devurl">
+      <button>Go!</button>
+    </form>
+    <a id="zip" download="app.zip">Download .zip</a>
+    <script src="jszip.js"></script>
+    <script>
+      document.querySelector('form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        var form = e.target;
+
+        zipUp(['index.html', 'manifest.webapp'], {
+          name : form.elements.name.value,
+          description : form.elements.desc.value,
+          devName : form.elements.devname.value,
+          devURL : form.elements.devurl.value
+        });
+      });
+
+      var zipLink = document.querySelector('#zip');
+
+      var format = (function() {
+        var re = /\{\{([^}]+)\}\}/g;
+        return function(s, args) {
+          if (!s) {
+            throw "Format string is empty!";
+          }
+          if (!args) return;
+          if (!(args instanceof Array || args instanceof Object))
+            args = Array.prototype.slice.call(arguments, 1);
+          return s.replace(re, function(_, match){ return args[match]; });
+        };
+      })();
+
+      function zipUp(paths, obj) {
+          var numPaths = paths.length;
+
+          var zip = new JSZip();
+
+          var numDone = 0;
+
+          function done(path) {
+            return function(e) {
+              console.log()
+              zip.file(path, format(e.responseText, obj));
+              numDone++;
+              checkDone();
+            };
+          }
+
+          function checkDone() {
+            if (numDone === numPaths) {
+              var blob = zip.generate({type:"blob"});
+              zipLink.style.display = 'block';
+              zipLink.setAttribute('href', window.URL.createObjectURL(blob));
+            }
+          }
+
+          paths.forEach(function(path) {
+            var req = new XMLHttpRequest();
+            req.onload = done(path);
+            req.open("get", "resources/" + path);
+            req.send();
+          });
+      }
+    </script>
+  </body>
+</html>
