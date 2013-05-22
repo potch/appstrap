@@ -55,10 +55,16 @@
                     0 -5px 10px rgba(0,0,0,.5) inset,
                     0 5px 10px rgba(255,255,255,.5) inset;
       }
+      #zip, progress {
+        margin: 1em auto;
+        display: none;
+      }
     </style>
   </head>
   <body>
     <h1>Start a new empty app</h1>
+    <progress value="0" max="0">Building Your zip...</progress>
+    <a id="zip" download="app.zip">Done! Download .zip</a>
     <form>
       <label for="name">Name</label>
       <input id="name">
@@ -70,12 +76,11 @@
       <input id="devurl">
       <button>Go!</button>
     </form>
-    <a id="zip" download="app.zip">Download .zip</a>
     <script src="jszip.js"></script>
     <script>
-      document.querySelector('form').addEventListener('submit', function(e) {
+      var form = document.querySelector('form');
+      form.addEventListener('submit', function(e) {
         e.preventDefault();
-        var form = e.target;
 
         zipUp(['index.html', 'manifest.webapp'], {
           name : form.elements.name.value,
@@ -86,9 +91,10 @@
       });
 
       var zipLink = document.querySelector('#zip');
+      var progress = document.querySelector('progress');
 
       var format = (function() {
-        var re = /\{\{([^}]+)\}\}/g;
+        var re = /\{\{\s*([^}\s]+)\s*\}\}/g;
         return function(s, args) {
           if (!s) {
             throw "Format string is empty!";
@@ -96,40 +102,45 @@
           if (!args) return;
           if (!(args instanceof Array || args instanceof Object))
             args = Array.prototype.slice.call(arguments, 1);
-          return s.replace(re, function(_, match){ return args[match]; });
+          return s.replace(re, function(_, match){ return args[match] || ''; });
         };
       })();
 
       function zipUp(paths, obj) {
-          var numPaths = paths.length;
+        var numPaths = paths.length;
 
-          var zip = new JSZip();
+        progress.max = numPaths;
+        progress.style.display = 'block';
+        form.style.display = 'none';
+        form.setAttribute('disabled', true);
 
-          var numDone = 0;
+        var zip = new JSZip();
 
-          function done(path) {
-            return function(e) {
-              console.log()
-              zip.file(path, format(e.responseText, obj));
-              numDone++;
-              checkDone();
-            };
+        var numDone = 0;
+
+        function done(path) {
+          return function(e) {
+            zip.file(path, format(this.responseText, obj));
+            numDone++;
+            progress.value = numDone;
+            checkDone();
+          };
+        }
+
+        function checkDone() {
+          if (numDone === numPaths) {
+            var blob = zip.generate({type:"blob"});
+            zipLink.style.display = 'block';
+            zipLink.setAttribute('href', window.URL.createObjectURL(blob));
           }
+        }
 
-          function checkDone() {
-            if (numDone === numPaths) {
-              var blob = zip.generate({type:"blob"});
-              zipLink.style.display = 'block';
-              zipLink.setAttribute('href', window.URL.createObjectURL(blob));
-            }
-          }
-
-          paths.forEach(function(path) {
-            var req = new XMLHttpRequest();
-            req.onload = done(path);
-            req.open("get", "resources/" + path);
-            req.send();
-          });
+        paths.forEach(function(path) {
+          var req = new XMLHttpRequest();
+          req.onload = done(path);
+          req.open("get", "resources/" + path);
+          req.send();
+        });
       }
     </script>
   </body>
