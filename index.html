@@ -82,7 +82,7 @@
       form.addEventListener('submit', function(e) {
         e.preventDefault();
 
-        zipUp(['index.html', 'manifest.webapp'], {
+        zipUp(['index.html', 'manifest.webapp', 'style.css', 'app.js'], {
           name : form.elements.name.value,
           description : form.elements.desc.value,
           devName : form.elements.devname.value,
@@ -116,11 +116,24 @@
 
         var zip = new JSZip();
 
+        var dirs = {};
+
         var numDone = 0;
 
         function done(path) {
+          var path = path.split('/');
+          var remotePath = path.pop();
+          if (path.length) {
+            var dir = path[0];
+            if (!(dir in dirs)) {
+              dirs[dir] = zip.folder('dir');
+            }
+            var localPath = dirs[dir];
+          } else {
+            var localPath = zip;
+          }
           return function(e) {
-            zip.file(path, format(this.responseText, obj));
+            localPath.file(remotePath, format(this.responseText, obj));
             numDone++;
             progress.value = numDone;
             checkDone();
@@ -130,6 +143,7 @@
         function checkDone() {
           if (numDone === numPaths) {
             var blob = zip.generate({type:"blob"});
+            zipLink.setAttribute('download', obj.name.replace(/\s+/, '-') + '.zip');
             zipLink.style.display = 'block';
             zipLink.setAttribute('href', window.URL.createObjectURL(blob));
           }
