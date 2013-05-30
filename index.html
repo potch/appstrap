@@ -79,6 +79,24 @@
     <script src="jszip.js"></script>
     <script>
       var form = document.querySelector('form');
+
+      function parseQueryString(qs) {
+        var re = /([^=\?]+)=([^&]+)&?/g;
+        var out = {};
+        var match;
+        while (match = re.exec(qs)) {
+          out[match[1]] = match[2];
+        }
+        return out;
+      }
+
+      var initOpts = parseQueryString(window.location.search);
+      for (var p in initOpts) {
+        if (form.elements[p]) {
+          form.elements[p].value = initOpts[p];
+        }
+      }
+
       form.addEventListener('submit', function(e) {
         e.preventDefault();
 
@@ -97,7 +115,7 @@
         var re = /\{\{\s*([^}\s]+)\s*\}\}/g;
         return function(s, args) {
           if (!s) {
-            throw "Format string is empty!";
+            return s;
           }
           if (!args) return;
           if (!(args instanceof Array || args instanceof Object))
